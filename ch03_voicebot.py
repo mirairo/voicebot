@@ -86,16 +86,16 @@ def main():
     with st.expander("음성비서 프로그램에 관하여", expanded=True):
         st.write(
         """     
-        - 음성비서 프로그램의 UI는 스트림릿을 활용하여 만들었습니다.
-        - STT(Speech-To-Text)는 OpenAI의 Whisper AI를 활용하였습니다. 
-        - 답변은 OpenAI의 GPT 모델을 활용하였습니다. 
-        - TTS(Text-To-Speech)는 구글의 Google Translate TTS를 활용하였습니다.
+        - 음성비서 프로그램의 UI는 스트림릿을 활용했습니다.
+        - STT(Speech-To-Text)는 OpenAI의 Whisper AI를 활용했습니다. 
+        - 답변은 OpenAI의 GPT 모델을 활용했습니다. 
+        - TTS(Text-To-Speech)는 구글의 Google Translate TTS를 활용했습니다.
         """
         )
 
         st.markdown("")
 
-    # 사이드바 바 생성
+    # 사이드바 생성
     with st.sidebar:
 
         # Open AI API 키 입력받기
@@ -103,7 +103,7 @@ def main():
 
         st.markdown("---")
 
-        # GPT 모델 선택 radio 버튼 생성
+        # GPT 모델을 선택하기 위한 라디오 버튼 생성
         model = st.radio(label="GPT 모델",options=["gpt-4", "gpt-3.5-turbo"])
 
         st.markdown("---")
@@ -114,10 +114,17 @@ def main():
             st.session_state["chat"] = []
             st.session_state["messages"] = [{"role": "system", "content": "You are a thoughtful assistant. Respond to all input in 25 words and answer in korea"}]
 
+        st.markdown("---")
+        st.image("https://wikibook.co.kr/images/cover/m/9791158394608.png")
+
+        st.markdown('''
+<a style="font-size:30px;" href="https://wikibook.co.kr/chatgpt-api/">도서 페이지로 이동</a>
+</font>
+''',unsafe_allow_html=True)
     # 기능 구현 공간
     col1, col2 =  st.columns(2)
     with col1:
-        # 왼쪽 공간 작성
+        # 왼쪽 영역 작성
         st.subheader("질문하기")
         # 음성 녹음 아이콘 추가
         audio = audiorecorder("클릭하여 녹음하기", "녹음중...")
@@ -128,7 +135,7 @@ def main():
             # 음원 파일에서 텍스트 추출
             question = STT(audio)
 
-            # 채팅 시각화를 위한 질문 내용 저장
+            # 채팅을 시각화하기 위해 질문 내용 저장
             now = datetime.now().strftime("%H:%M")
             st.session_state["chat"] = st.session_state["chat"]+ [("user",now, question)]
             # GPT 모델에 넣을 프롬프트를 위해 질문 내용 저장
@@ -138,7 +145,7 @@ def main():
             flag_start =True
 
     with col2:
-        # 오른쪽 공간 작성
+        # 오른쪽 영역 작성
         st.subheader("질문/답변")
         if flag_start:
             #ChatGPT에게 답변 얻기
