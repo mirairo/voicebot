@@ -8,34 +8,34 @@ import openai
 import os
 # 시간 정보를 위핸 패키지 추가
 from datetime import datetime
-# 오디오 array 비교를 위한 numpy 패키지 추가
-import numpy as np
 # TTS 패키기 추가
 from gtts import gTTS
 # 음원파일 재생을 위한 패키지 추가
 import base64
 
 ##### 기능 구현 함수 #####
-def STT(audio):
+def STT(audio,apikey):
     # 파일 저장
     filename='input.mp3'
-    wav_file = open(filename, "wb")
-    wav_file.write(audio.tobytes())
-    wav_file.close()
+    audio.export(filename, format="mp3")
 
     # 음원 파일 열기
     audio_file = open(filename, "rb")
     #Whisper 모델을 활용해 텍스트 얻기
-    transcript = openai.Audio.transcribe("whisper-1", audio_file)
+    client = openai.OpenAI(api_key = apikey)
+    respons = client.audio.transcriptions.create(model = "whisper-1", file = audio_file)
     audio_file.close()
     # 파일 삭제
     os.remove(filename)
-    return transcript["text"]
+    return respons.text
 
-def ask_gpt(prompt, model):
-    response = openai.ChatCompletion.create(model=model, messages=prompt)
-    system_message = response["choices"][0]["message"]
-    return system_message["content"]
+def ask_gpt(prompt, model, apikey):
+    client = openai.OpenAI(api_key = apikey)
+    response = client.chat.completions.create(
+    model=model,
+    messages=prompt)
+    gptResponse = response.choices[0].message.content
+    return gptResponse
 
 def TTS(response):
     # gTTS 를 활용하여 음성 파일 생성
@@ -63,19 +63,18 @@ def main():
         page_title="음성 비서 프로그램",
         layout="wide")
 
-    flag_start = False
-
     # session state 초기화
     if "chat" not in st.session_state:
         st.session_state["chat"] = []
+    
+    if "OPENAI_API" not in st.session_state:
+        st.session_state["OPENAI_API"] = ""
 
     if "messages" not in st.session_state:
         st.session_state["messages"] = [{"role": "system", "content": "You are a thoughtful assistant. Respond to all input in 25 words and answer in korea"}]
 
-    if "check_audio" not in st.session_state:
-        st.session_state["check_audio"] = []
-
-
+    if "check_reset" not in st.session_state:
+        st.session_state["check_reset"] = False
 
     # 제목 
     st.header("음성 비서 프로그램")
@@ -99,7 +98,7 @@ def main():
     with st.sidebar:
 
         # Open AI API 키 입력받기
-        openai.api_key = st.text_input(label="OPENAI API 키", placeholder="Enter Your API Key", value="", type="password")
+        st.session_state["OPENAI_API"] = st.text_input(label="OPENAI API 키", placeholder="Enter Your API Key", value="", type="password")
 
         st.markdown("---")
 
@@ -113,14 +112,8 @@ def main():
             # 리셋 코드 
             st.session_state["chat"] = []
             st.session_state["messages"] = [{"role": "system", "content": "You are a thoughtful assistant. Respond to all input in 25 words and answer in korea"}]
-
-        st.markdown("---")
-        st.image("https://wikibook.co.kr/images/cover/m/9791158394608.png")
-
-        st.markdown('''
-<a style="font-size:30px;" href="https://wikibook.co.kr/chatgpt-api/">도서 페이지로 이동</a>
-</font>
-''',unsafe_allow_html=True)
+            st.session_state["check_reset"] = True
+            
     # 기능 구현 공간
     col1, col2 =  st.columns(2)
     with col1:
@@ -128,28 +121,24 @@ def main():
         st.subheader("질문하기")
         # 음성 녹음 아이콘 추가
         audio = audiorecorder("클릭하여 녹음하기", "녹음중...")
-        if len(audio) > 0 and not np.array_equal(audio,st.session_state["check_audio"]):
+        if (audio.duration_seconds > 0) and (st.session_state["check_reset"]==False):
             # 음성 재생 
-            st.audio(audio.tobytes())
-
+            st.audio(audio.export().read())
             # 음원 파일에서 텍스트 추출
-            question = STT(audio)
+            question = STT(audio,st.session_state["OPENAI_API"])
 
             # 채팅을 시각화하기 위해 질문 내용 저장
             now = datetime.now().strftime("%H:%M")
             st.session_state["chat"] = st.session_state["chat"]+ [("user",now, question)]
             # GPT 모델에 넣을 프롬프트를 위해 질문 내용 저장
             st.session_state["messages"] = st.session_state["messages"]+ [{"role": "user", "content": question}]
-            # audio 버퍼 확인을 위해 현 시점 오디오 정보 저장
-            st.session_state["check_audio"] = audio
-            flag_start =True
 
     with col2:
         # 오른쪽 영역 작성
         st.subheader("질문/답변")
-        if flag_start:
+        if  (audio.duration_seconds > 0)  and (st.session_state["check_reset"]==False):
             #ChatGPT에게 답변 얻기
-            response = ask_gpt(st.session_state["messages"], model)
+            response = ask_gpt(st.session_state["messages"], model, st.session_state["OPENAI_API"])
 
             # GPT 모델에 넣을 프롬프트를 위해 답변 내용 저장
             st.session_state["messages"] = st.session_state["messages"]+ [{"role": "system", "content": response}]
@@ -169,6 +158,8 @@ def main():
             
             # gTTS 를 활용하여 음성 파일 생성 및 재생
             TTS(response)
+        else:
+            st.session_state["check_reset"] = False
 
 if __name__=="__main__":
     main()
