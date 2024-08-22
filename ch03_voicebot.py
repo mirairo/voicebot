@@ -77,12 +77,12 @@ def main():
         st.session_state["check_reset"] = False
 
     # 제목 
-    st.header("음성 비서 프로그램")
+    st.header("이종기 음성 비서 프로그램")
     # 구분선
     st.markdown("---")
 
     # 기본 설명
-    with st.expander("음성비서 프로그램에 관하여", expanded=True):
+    with st.expander("이종기 음성비서 프로그램에 관하여", expanded=True):
         st.write(
         """     
         - 음성비서 프로그램의 UI는 스트림릿을 활용했습니다.
